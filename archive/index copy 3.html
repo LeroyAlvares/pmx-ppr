@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BlockBuster Quiz Home</title>
+    <style>
+        body {
+            position: relative;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow-x: hidden;
+        }
+        .background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.7;
+            object-fit: cover;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin-top: 40px;
+            margin-bottom: 30px;
+        }
+        .logos img {
+            height: 100px;
+            width: auto;
+            object-fit: contain;
+            transition: transform 0.2s;
+        }
+        .logos img:hover {
+            transform: scale(1.07);
+        }
+        .main-headings {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .quiz-title {
+            font-size: 2.3rem;
+            font-weight: bold;
+            margin-bottom: 40px;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow:
+                0 2px 8px rgba(0,0,0,0.7),
+                0 0px 2px #0074D9;
+            background: rgba(0,0,0,0.35);
+            padding: 12px 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+        }
+        .welcome {
+            font-size: 2.7rem;
+            font-weight: 600;
+            margin: 0;
+            color: #fff;
+            text-shadow:
+                0 4px 16px rgba(0,0,0,0.8),
+                0 2px 2px #0074D9;
+            background: rgba(0,0,0,0.28);
+            padding: 10px 28px 0 28px;
+            border-radius: 12px 12px 0 0;
+        }
+        .blockbuster {
+            font-size: 4rem;
+            font-weight: 800;
+            margin: 0;
+            color: #FFD700;
+            letter-spacing: 3px;
+            text-shadow:
+                0 6px 24px rgba(0,0,0,0.85),
+                0 2px 0 #0074D9,
+                0 0 8px #fff;
+            background: rgba(0,0,0,0.38);
+            padding: 0 32px 16px 32px;
+            border-radius: 0 0 18px 18px;
+        }
+        .category-buttons {
+            display: flex;
+            gap: 32px;
+            margin-top: 48px;
+        }
+        .category-btn {
+            padding: 16px 40px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: 2px solid #0074D9;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.85);
+            color: #0074D9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: 
+                background 0.18s, 
+                color 0.18s, 
+                border-color 0.18s, 
+                transform 0.13s, 
+                box-shadow 0.18s;
+            text-shadow: none;
+            outline: none;
+        }
+        .category-btn:hover {
+            background: #0074D9;
+            color: #fff;
+            border-color: #005fa3;
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.13);
+        }
+    </style>
+</head>
+<body>
+    <img src="images/background.jpg" alt="Background" class="background-image">
+    <div class="content">
+        <div class="logos">
+            <img src="images/logos/mahe_ispe.png" alt="Logo 1">
+            <img src="images/logos/mcops.PNG" alt="Logo 2">
+            <img src="images/logos/cotvds.png" alt="Logo 3">
+        </div>
+        <div class="main-headings">
+            <div class="quiz-title">MAHE - ISPE Quiz Finals</div>
+            <div class="welcome">Welcome to</div>
+            <div class="blockbuster">BlockBuster</div>
+        </div>
+        <div class="category-buttons">
+            <a href="image1.html"><button class="category-btn">Junior Category</button></a>
+            <a href="image1.html"><button class="category-btn">Senior Category</button></a>
+        </div>
+    </div>
+</body>
+</html>

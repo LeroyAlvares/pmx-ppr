@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.8">
+    <title>Image Reveal Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            background: #f0f2f5 url('../images/background.jpg') center/cover no-repeat;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7); /* White with 0.5 transparency */
+            z-index: -1;
+        }
+        .tile {
+            transform-style: preserve-3d;
+            transition: transform 0.6s, opacity 0.6s;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 0.5px solid #000; /* Adds a solid black border */
+            box-sizing: border-box;
+        }
+        .tile.revealed {
+            transform: rotateY(180deg);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .tile.locked {
+            background-color: #4b5563;
+            cursor: not-allowed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #333;  
+        }
+        #questionModal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        ::-webkit-scrollbar {
+            width: 0;
+            background: transparent;
+        }
+        .answer-buttons {
+            display: none;
+        }
+        .reveal-answer-btn {
+            transition: all 0.3s ease;
+        }
+        .reveal-answer-btn:hover {
+            transform: translateY(-2px);
+        }
+        .close-icon {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        .close-icon:hover {
+            background-color: #f3f4f6;
+            transform: scale(1.1);
+        }
+        #game-container img {
+            opacity: 0;
+            transition: opacity 0.3s;
+            border: 2px solid #000000; /* Black border around the image */
+            border-radius: 0.5rem; /* matches the container's rounded corners */
+            box-sizing: border-box;
+        }
+        /* New heading styles */
+        .main-heading {
+            font-size: 5rem;
+            font-weight: 900;
+            color: transparent;
+            -webkit-text-stroke: 0.5px #4f46e5;
+            text-shadow: 2px 2px 2px rgba(79, 70, 229, 0.2);
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            display: block;
+            position: relative;
+            padding: 0.5rem;
+        }
+        .main-heading::after {
+            content: 'Pixel Mania!';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            color: #4f46e5;
+            z-index: -1;
+            text-shadow: 0px 0px 8px rgba(79, 70, 229, 0.5);
+        }
+        .sub-heading {
+            font-weight: 700; /* Thicker font weight */
+            font-size: 1.1rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        @media (max-width: 768px) {
+            .main-heading {
+                font-size: 2.5rem;
+                -webkit-text-stroke: 2px #4f46e5;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-2xl mx-auto p-4 md:p-6">
+        <div class="text-center mb-6">
+            <h1 class="main-heading">Pixel Mania!</h1>
+            <p class="sub-heading text-gray-600">Click a tile, answer the question correctly to reveal a piece of the hidden image.</p>
+        </div>
+        
+        <!-- Game Board Container -->
+        <div id="game-container" class="relative aspect-square rounded-xl shadow-2xl overflow-hidden">
+            <!-- Hidden Image -->
+            <img src="../images/1.png" 
+     alt="Hidden puzzle image" 
+     class="absolute top-0 left-0 w-full h-full object-cover"
+     onerror="this.onerror=null;this.src='https://placehold.co/800x800/cccccc/333333?text=Image+Failed+to+Load';">
+
+<!-- Caption (initially hidden) -->
+<div id="imageCaption" class="absolute bottom-0 left-0 w-full bg-white/80 text-center py-2 text-lg font-semibold text-gray-800 rounded-b-xl opacity-0 transition-opacity duration-300 pointer-events-none">
+    <!-- Caption text will be set by JS -->
+</div>
+            <!-- Grid Overlay -->
+            <div id="grid-container" class="absolute top-0 left-0 w-full h-full grid grid-cols-5 grid-rows-5 gap-0 bg-white/20">
+                <!-- Tiles will be generated by JavaScript -->
+            </div>
+        </div>
+        <!-- Add buttons below the grid -->
+        <div class="flex justify-center gap-4 mt-6">
+            <button id="revealImageBtn" class="px-6 py-3 rounded-lg bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 transition focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                Reveal Image
+            </button>
+            <button id="nextImageBtn" class="px-6 py-3 rounded-lg bg-gray-200 text-gray-800 font-semibold shadow hover:bg-gray-300 transition focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                Next Image
+            </button>
+        </div>
+    </div>
+
+    <!-- Question Modal -->
+    <div id="questionModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 opacity-0 pointer-events-none z-50">
+        <div id="modalContent" class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md transform scale-95 transition-transform duration-300 relative">
+            <!-- Close Icon (X) -->
+            <div id="closeModalIcon" class="close-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </div>
+            
+            <h2 class="text-2xl font-bold mb-4" id="questionText">Question placeholder?</h2>
+            
+            <!-- Answer reveal section -->
+            <div class="mb-6">
+                <button id="revealAnswerButton" class="reveal-answer-btn w-full px-4 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium">
+                    Reveal Answer
+                </button>
+                <div id="answerSection" class="mt-4 p-4 bg-gray-100 rounded-lg hidden">
+                    <p class="text-gray-700 mb-3">The correct answer is:</p>
+                    <p id="correctAnswer" class="text-xl font-semibold text-green-700"></p>
+                </div>
+            </div>
+            
+            <!-- Evaluation buttons -->
+            <div id="evaluationButtons" class="answer-buttons mt-6 flex justify-center space-x-4">
+                <button id="correctButton" class="px-6 py-3 rounded-lg bg-green-500 text-white font-semibold shadow hover:bg-green-600 transition">
+                    ✓ Correct
+                </button>
+                <button id="incorrectButton" class="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold shadow hover:bg-red-600 transition">
+                    ✗ Incorrect
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win/Game Over Modal -->
+    <div id="winModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 opacity-0 pointer-events-none z-50">
+        <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md text-center">
+            <h2 class="text-3xl font-bold text-green-500 mb-4">Congratulations!</h2>
+            <p class="text-gray-700 mb-6">You've revealed the entire image!</p>
+            <button onclick="location.reload()" class="px-6 py-3 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition font-semibold">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- GAME DATA ---
+            const questions = [
+                {
+    "question": "What does NTEP stand for?",
+    "answer": "National TB Elimination Programme"
+  },
+  {
+    "question": "The world's first birth control pill was approved in what year?",
+    "answer": "1960"
+  },
+  {
+    "question": "Which is the first modern hospital established in India?",
+    "answer": "Rajeev Gandhi Madras General Hospital"
+  },
+  {
+    "question": "In a study, which variable is related to both exposure and outcome but is not part of causal pathway?",
+    "answer": "Confounding"
+  },
+  {
+    "question": "What is the term for a drug that is not labeled in accordance with the Drug and Cosmetic Act's provisions?",
+    "answer": "Misbranded"
+  },
+  {
+    "question": "What is the medical term for the cause or origin of a disease?",
+    "answer": "Etiology"
+  },
+  {
+    "question": "Which is the first Hospital established in India?",
+    "answer": "Madras General Hospital"
+  },
+  {
+    "question": "The first scientist who distinguished small pox from measles was?",
+    "answer": "Abu Bakr al-Razi (also known as Rhazes)"
+  },
+  {
+    "question": "Which drug, originally developed as an antihypertensive, is now widely used in dermatology?",
+    "answer": "Minoxidil"
+  },
+  {
+    "question": "Mitochondrial DNA is inherited exclusively from which parent?",
+    "answer": "Mother"
+  },
+  {
+    "question": "Which state in India had the highest number of Janaushadhi Kendras (Jaks) as of June 30, 2025?",
+    "answer": "Uttar Pradesh"
+  },
+  {
+    "question": "What country is the headquarters of the World Health Organization (WHO) located in?",
+    "answer": "Switzerland"
+  },
+  {
+    "question": "The Society of Apothecaries was incorporated by royal charter in what city?",
+    "answer": "London"
+  },
+  {
+    "question": "Which poisonous element was historically called the 'Inheritance Powder'?",
+    "answer": "Arsenic"
+  },
+  {
+    "question": "Which country first developed α,β-Arteether as an antimalarial drug?",
+    "answer": "China"
+  },
+  {
+    "question": "Lyophilization (freeze-drying) is primarily used for:",
+    "choices": ["Reducing drug particle size", "Improving heat-sensitive", "Stabilizing heat-sensitive drugs", "Increasing bioavailability of oral drugs"],
+    "answer": "Stabilizing heat-sensitive drugs"
+  },
+  {
+    "question": "Which WHO city first defined Drug Utilization Research in 197? (Missing digit)?",
+    "answer": "Oslo"
+  },
+  {
+    "question": "Which system delivers drugs using vesicles with a bilayer?",
+    "answer": "Lipid Based Drug Delivery system"
+  },
+  {
+    "question": "Which anticoagulant is used in ESR test tubes?",
+    "answer": "Sodium Citrate"
+  },
+  {
+    "question": "Which Indian city is the Headquarters for Sun Pharmaceutical Industries?",
+    "answer": "Mumbai"
+  },
+  {
+    "question": "Who is revered as the 'Father of Surgery' in ancient India?",
+    "answer": "Sushrutha"
+  },
+  {
+    "question": "Which trace element is vital for insulin function?",
+    "answer": "Zinc"
+  },
+  {
+    "question": "In pharmaceutical industry, which document tracks batch history?",
+    "answer": "Batch Manufacturing Records"
+  },
+  {
+    "question": "In which country was the Franciscan Monastery Pharmacy founded?",
+    "answer": "Croatia"
+  },
+  {
+    "question": "Which Indian pharma company, incorporated in 1945, has Snehal Arora as its CEO & Whole-Time Director?",
+    "answer": "Mankind Pharma"
+  }
+                // QUESTIONSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS       <------------------------------ better to do it left to right, up to down.
+            ];
+
+            // --- DOM ELEMENTS ---
+            const gridContainer = document.getElementById('grid-container');
+            const questionModal = document.getElementById('questionModal');
+            const modalContent = document.getElementById('modalContent');
+            const questionText = document.getElementById('questionText');
+            const revealAnswerButton = document.getElementById('revealAnswerButton');
+            const answerSection = document.getElementById('answerSection');
+            const correctAnswer = document.getElementById('correctAnswer');
+            const evaluationButtons = document.getElementById('evaluationButtons');
+            const correctButton = document.getElementById('correctButton');
+            const incorrectButton = document.getElementById('incorrectButton');
+            const closeModalIcon = document.getElementById('closeModalIcon');
+            const winModal = document.getElementById('winModal');
+            const revealImageBtn = document.getElementById('revealImageBtn');
+            const nextImageBtn = document.getElementById('nextImageBtn');
+
+            // --- GAME STATE ---
+            let activeTile = null;
+            let revealedCount = 0;
+            const totalTiles = 25;
+            let tilesData = [];
+
+            // --- FUNCTIONS ---
+
+            // Shuffle function to randomize questions
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            // Initialize the game board
+            function initGame() {
+                gridContainer.innerHTML = '';
+                revealedCount = 0;
+                tilesData = [];
+
+                // Hide the image initially
+                const hiddenImg = document.querySelector('#game-container img');
+                if (hiddenImg) {
+                    hiddenImg.style.opacity = '0';
+                    hiddenImg.style.transition = 'opacity 0.3s';
+                }
+
+                // Render tiles first
+                for (let i = 0; i < totalTiles; i++) {
+                    const tileData = {
+                        id: i,
+                        question: questions[i]?.question,
+                        answer: questions[i]?.answer,
+                        image: questions[i]?.image,
+                        choices: questions[i]?.choices,
+                        state: 'covered'
+                    };
+                    tilesData.push(tileData);
+
+                    const tileElement = document.createElement('div');
+                    tileElement.classList.add('tile', 'bg-indigo-500', 'rounded-md');
+                    tileElement.dataset.id = i;
+                    tileElement.addEventListener('click', handleTileClick);
+                    gridContainer.appendChild(tileElement);
+                }
+
+                // Show the image after a short delay (e.g., 300ms)
+                setTimeout(() => {
+                    if (hiddenImg) hiddenImg.style.opacity = '1';
+                }, 300);
+            }
+
+            // Handle clicking on a tile
+            function handleTileClick(event) {
+                const tileId = parseInt(event.target.dataset.id);
+                const tile = tilesData[tileId];
+
+                if (tile.state === 'covered') {
+                    activeTile = tile;
+                    renderQuestionModal(tile);
+                    showModal();
+                }
+            }
+
+            // Render question modal content (supports image and MCQ)
+            function renderQuestionModal(tile) {
+                questionText.textContent = tile.question;
+
+                // Remove any previous image or MCQ
+                const prevImage = modalContent.querySelector('.question-image');
+                if (prevImage) prevImage.remove();
+                const prevMCQ = modalContent.querySelector('.mcq-choices');
+                if (prevMCQ) prevMCQ.remove();
+
+                // If image question, add image
+                if (tile.image) {
+                    const img = document.createElement('img');
+                    img.src = tile.image;
+                    img.alt = "Question image";
+                    img.className = "question-image w-full max-h-48 object-contain mb-4 rounded";
+                    questionText.insertAdjacentElement('afterend', img);
+                }
+
+                // If MCQ, add choices
+                if (tile.choices) {
+                    const mcqDiv = document.createElement('div');
+                    mcqDiv.className = "mcq-choices flex flex-col gap-2 mt-4";
+                    tile.choices.forEach(choice => {
+                        const btn = document.createElement('button');
+                        btn.textContent = choice;
+                        btn.className = "w-full px-4 py-2 rounded bg-gray-200 hover:bg-indigo-200 transition font-medium";
+                        btn.onclick = () => {
+                            // Disable all buttons after selection
+                            mcqDiv.querySelectorAll('button').forEach(b => b.disabled = true);
+
+                            // Show the correct answer and color the buttons
+                            mcqDiv.querySelectorAll('button').forEach(b => {
+                                if (b.textContent === tile.answer) {
+                                    b.classList.remove('bg-gray-200', 'hover:bg-indigo-200');
+                                    b.classList.add('bg-green-400', 'text-white');
+                                } else if (b.textContent === btn.textContent) {
+                                    b.classList.remove('bg-gray-200', 'hover:bg-indigo-200');
+                                    b.classList.add('bg-red-400', 'text-white');
+                                } else {
+                                    b.classList.add('opacity-70');
+                                }
+                            });
+
+                            // Show the answer section
+                            correctAnswer.textContent = tile.answer;
+                            answerSection.classList.remove('hidden');
+                            // Mark the tile as "pending" for evaluation on close
+                            tile.mcqSelected = btn.textContent;
+                        };
+                        mcqDiv.appendChild(btn);
+                    });
+                    questionText.insertAdjacentElement('afterend', mcqDiv);
+                    // Hide manual evaluation buttons for MCQ
+                    evaluationButtons.style.display = "none";
+                    revealAnswerButton.style.display = "none";
+                } else {
+                    // Show manual evaluation buttons for non-MCQ
+                    evaluationButtons.style.display = "";
+                    revealAnswerButton.style.display = "";
+                }
+            }
+
+            // Show the question modal with a smooth animation
+            function showModal() {
+                // Reset modal state
+                answerSection.classList.add('hidden');
+                evaluationButtons.classList.remove('answer-buttons');
+                evaluationButtons.classList.add('answer-buttons');
+                revealAnswerButton.disabled = false;
+                revealAnswerButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                questionModal.classList.remove('opacity-0', 'pointer-events-none');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }
+
+            // Hide the question modal
+            function hideModal() {
+                // For MCQ: only evaluate if a choice was made
+                if (activeTile && activeTile.choices && activeTile.mcqSelected !== undefined) {
+                    const isCorrect = activeTile.mcqSelected === activeTile.answer;
+                    // Remove the marker so it doesn't trigger again
+                    delete activeTile.mcqSelected;
+                    evaluateAnswer(isCorrect);
+                    return; // evaluateAnswer will call hideModal again
+                }
+                // Just close the modal if no MCQ option was selected
+                questionModal.classList.add('opacity-0', 'pointer-events-none');
+                modalContent.classList.remove('scale-100');
+                modalContent.classList.add('scale-95');
+                activeTile = null;
+            }
+
+            // Reveal the answer
+            function revealAnswer() {
+                correctAnswer.textContent = activeTile.answer;
+                answerSection.classList.remove('hidden');
+                evaluationButtons.classList.remove('answer-buttons');
+                
+                // Disable the reveal button after clicking
+                revealAnswerButton.disabled = true;
+                revealAnswerButton.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Handle evaluation (correct or incorrect)
+            function evaluateAnswer(isCorrect) {
+                if (!activeTile) return;
+                
+                const tileElement = document.querySelector(`.tile[data-id='${activeTile.id}']`);
+
+                if (isCorrect) {
+                    // Correct answer
+                    activeTile.state = 'revealed';
+                    tileElement.classList.add('revealed');
+                    revealedCount++;
+                    if (revealedCount === totalTiles) {
+                        setTimeout(showWinModal, 800);
+                    }
+                } else {
+                    // Incorrect answer
+                    activeTile.state = 'locked';
+                    tileElement.classList.add('locked');
+                    tileElement.classList.remove('bg-indigo-500');
+                    tileElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white opacity-50"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+                }
+                hideModal();
+            }
+            
+            function showWinModal() {
+                winModal.classList.remove('opacity-0', 'pointer-events-none');
+            }
+
+            // --- EVENT LISTENERS ---
+            revealAnswerButton.addEventListener('click', revealAnswer);
+            correctButton.addEventListener('click', () => evaluateAnswer(true));
+            incorrectButton.addEventListener('click', () => evaluateAnswer(false));
+            closeModalIcon.addEventListener('click', hideModal);
+            
+            // Close modal when clicking outside
+            questionModal.addEventListener('click', (e) => {
+                if (e.target === questionModal) hideModal();
+            });
+            
+            // Reveal image button
+            revealImageBtn.addEventListener('click', () => {
+    const hiddenImg = document.querySelector('#game-container img');
+    if (hiddenImg) hiddenImg.style.opacity = '1';
+
+    // Reveal all tiles
+    document.querySelectorAll('.tile').forEach(tile => {
+        tile.classList.add('revealed');
+    });
+
+    // Update game state
+    tilesData.forEach(tile => {
+        tile.state = 'revealed';
+    });
+    revealedCount = totalTiles;
+
+    // Show and set the caption
+    const captionDiv = document.getElementById('imageCaption');
+    if (captionDiv) {
+        captionDiv.textContent = "WHO Director General - Dr. Tedros Adhanom Ghebreyesus"; // <-- Set your caption here
+        captionDiv.classList.remove('opacity-0', 'pointer-events-none');
+        captionDiv.classList.add('opacity-100');
+    }
+});
+            
+            // Next image button
+            nextImageBtn.addEventListener('click', () => {
+                window.location.href = 'image2s.html';
+            });
+
+            // --- INITIALIZE GAME ---
+            initGame();
+        });
+    </script>
+</body>
+
+</html>
